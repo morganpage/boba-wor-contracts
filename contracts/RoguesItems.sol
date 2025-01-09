@@ -2,16 +2,24 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.22;
 
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Burnable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import {ERC1155Pausable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract RoguesItems is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable {
+contract RoguesItems is ERC1155, AccessControl, ERC1155Pausable, ERC1155Burnable {
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
   using Strings for uint256;
 
-  constructor(address initialOwner) ERC1155("") Ownable(initialOwner) {}
+  constructor(address defaultAdmin, address pauser, address minter) ERC1155("") {
+    _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
+    _grantRole(PAUSER_ROLE, pauser);
+    _grantRole(MINTER_ROLE, minter);
+  }
 
   function balanceOfBatchOneAddr(address account, uint256[] memory ids) public view returns (uint256[] memory) {
     uint256[] memory batchBalances = new uint256[](ids.length);
@@ -21,7 +29,7 @@ contract RoguesItems is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable {
     return batchBalances;
   }
 
-  function setURI(string memory newuri) public onlyOwner {
+  function setURI(string memory newuri) public onlyRole(DEFAULT_ADMIN_ROLE) {
     _setURI(newuri);
   }
 
@@ -30,31 +38,34 @@ contract RoguesItems is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable {
     return string(abi.encodePacked(baseURI, tokenId.toString()));
   }
 
-  function pause() public onlyOwner {
+  function pause() public onlyRole(PAUSER_ROLE) {
     _pause();
   }
 
-  function unpause() public onlyOwner {
+  function unpause() public onlyRole(PAUSER_ROLE) {
     _unpause();
   }
 
-  function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyOwner {
+  function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyRole(MINTER_ROLE) {
     _mint(account, id, amount, data);
   }
 
-  function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyOwner {
+  function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyRole(MINTER_ROLE) {
     _mintBatch(to, ids, amounts, data);
   }
 
-  function mintBatchAddr(address[] memory accounts, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyOwner {
+  function mintBatchAddr(address[] memory accounts, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyRole(MINTER_ROLE) {
     for (uint256 i = 0; i < accounts.length; ++i) {
       _mint(accounts[i], ids[i], amounts[i], data);
     }
   }
 
   // The following functions are overrides required by Solidity.
-
   function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal override(ERC1155, ERC1155Pausable) {
     super._update(from, to, ids, values);
+  }
+
+  function supportsInterface(bytes4 interfaceId) public view override(ERC1155, AccessControl) returns (bool) {
+    return super.supportsInterface(interfaceId);
   }
 }
