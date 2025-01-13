@@ -34,11 +34,16 @@ describe("RoguesItems", function () {
       await roguesItems.mint(otherAccount, 1, 1, "0x");
       expect(await roguesItems.balanceOf(otherAccount, 1)).to.equal(1n);
     });
+    it("Should revert if not minter", async function () {
+      const {roguesItems, owner, otherAccount} = await loadFixture(deployRoguesItems);
+      expect(roguesItems.connect(otherAccount).mint(otherAccount, 1, 1, "0x")).to.be.revertedWith("");
+    });
+
     it("Should be able make other account minter", async function () {
       const {roguesItems, owner, otherAccount} = await loadFixture(deployRoguesItems);
+      expect(await roguesItems.balanceOf(otherAccount, 1)).to.equal(0n);
       const minterRole = id("MINTER_ROLE");
       expect(await roguesItems.hasRole(minterRole, otherAccount)).to.equal(false);
-      expect(roguesItems.connect(otherAccount).mint(otherAccount, 1, 1, "0x")).to.be.revertedWith("");
       await roguesItems.grantRole(minterRole, otherAccount);
       expect(await roguesItems.hasRole(minterRole, otherAccount)).to.equal(true);
       await roguesItems.connect(otherAccount).mint(otherAccount, 1, 1, "0x");

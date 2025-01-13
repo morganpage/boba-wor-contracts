@@ -1,5 +1,8 @@
 {
   "RoguesModule#Rogues": "0xbE7C67194099b98F21A54e1272eB5C622D5D31B4",
   "RoguesItemsModule#RoguesItems": "0xC997317CB590e9946444b1aF72180ee9901989a9",
-  "DailyStreakSystemModule#DailyStreakSystem": "0xfab43617B1Fa1fB3CCa323FCC2FC3DFe9E877B2B"
+  "DailyStreakSystemModule#DailyStreakSystem": "0xfab43617B1Fa1fB3CCa323FCC2FC3DFe9E877B2B",
+  "DeployAllModule#Rogues": "0x14a7183134589A39A77B6Bc3C46B4FB5F1578808",
+  "DeployAllModule#RoguesItems": "0x56438B4ed61d67529b3d552FB2388587613CbBC8",
+  "DeployAllModule#DailyStreakSystem": "0x078c2B9B4099A9600A708e5CB7F6D85F136D82f4"
 }

@@ -5,9 +5,13 @@ describe("DailyStreakSystem", function () {
   async function deployDailyStreakSystem() {
     const [owner, otherAccount] = await hre.ethers.getSigners();
     const contract = await hre.ethers.getContractFactory("DailyStreakSystem");
-    const dailyStreakSystem = await contract.deploy(owner);
+    //RoguesItems is the contract name
+    const contractERC1155 = await hre.ethers.getContractFactory("RoguesItems");
+    const contractERC1155Address = await contractERC1155.deploy(owner, owner, owner);
+    const dailyStreakSystem = await contract.deploy(owner, contractERC1155Address);
     await dailyStreakSystem.waitForDeployment();
-    return {dailyStreakSystem, owner, otherAccount};
+    await contractERC1155Address.grantMinterRole(dailyStreakSystem);
+    return {dailyStreakSystem, owner, otherAccount, contractERC1155Address};
   }
 
   describe("Deployment", function () {
@@ -18,6 +22,20 @@ describe("DailyStreakSystem", function () {
     it("Last claimed should be zero", async function () {
       const {dailyStreakSystem, owner, otherAccount} = await deployDailyStreakSystem();
       expect(await dailyStreakSystem.getLastClaimed(otherAccount)).to.equal(0n);
+    });
+  });
+
+  describe("Adding Milestones", function () {
+    it("Should add milestone successfully", async function () {
+      const {dailyStreakSystem, owner, otherAccount} = await deployDailyStreakSystem();
+      expect(await dailyStreakSystem.milestoneToTokenId(1)).to.equal(0n);
+      await dailyStreakSystem.setMilestone(1, 11); //Add tokenId 11 as milestone 1 reward
+      expect(await dailyStreakSystem.milestoneToTokenId(1)).to.equal(11n);
+    });
+    it("Only owner should be able to add milestones", async function () {
+      const {dailyStreakSystem, owner, otherAccount} = await deployDailyStreakSystem();
+      expect(dailyStreakSystem.connect(otherAccount).setMilestone(1, 11)).to.be.revertedWith("");
+      expect(await dailyStreakSystem.milestoneToTokenId(1)).to.equal(0n);
     });
   });
 
@@ -55,6 +73,20 @@ describe("DailyStreakSystem", function () {
       console.log(await dailyStreakSystem.timeUntilStreakReset(otherAccount));
       await dailyStreakSystem.connect(otherAccount).claim();
       expect(await dailyStreakSystem.connect(otherAccount).getStreak(otherAccount.address)).to.equal(1n);
+    });
+    it("Should mint NFT 11 on successful claim of a milestone", async function () {
+      const {dailyStreakSystem, owner, otherAccount, contractERC1155Address} = await deployDailyStreakSystem();
+      await dailyStreakSystem.setMilestone(1, 11); //Add tokenId 11 as milestone 1 reward
+      await dailyStreakSystem.claim();
+      expect(await dailyStreakSystem.getStreak(owner)).to.equal(1n);
+      expect(await contractERC1155Address.balanceOf(owner, 11)).to.equal(1n);
+    });
+    it("Should mint NFT 12 on successful claim of a milestone", async function () {
+      const {dailyStreakSystem, owner, otherAccount, contractERC1155Address} = await deployDailyStreakSystem();
+      await dailyStreakSystem.setMilestone(1, 12); //Add tokenId 11 as milestone 1 reward
+      await dailyStreakSystem.connect(otherAccount).claim();
+      expect(await dailyStreakSystem.getStreak(otherAccount)).to.equal(1n);
+      expect(await contractERC1155Address.balanceOf(otherAccount, 12)).to.equal(1n);
     });
   });
   // it("Should claim successfully after 48 hours", async function () {

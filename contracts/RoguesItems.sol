@@ -33,6 +33,10 @@ contract RoguesItems is ERC1155, AccessControl, ERC1155Pausable, ERC1155Burnable
     _setURI(newuri);
   }
 
+  function grantMinterRole(address minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    _grantRole(MINTER_ROLE, minter);
+  }
+
   function uri(uint256 tokenId) public view override returns (string memory) {
     string memory baseURI = ERC1155.uri(tokenId);
     return string(abi.encodePacked(baseURI, tokenId.toString()));
