@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streak Test</title>
+</head>
+
+<body>
+  <h1>Streak Test</h1>
+  <button id="btnConn"> Connect Wallet </button>
+  <button id="btnClaim"> Claim Streak </button>
+  <button id="btnGetStreak"> Get Streak </button>
+  <p id="streak"></p>
+</body>
+
+<script type="module">
+  import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
+  const artifactPromise = await fetch("./artifacts/contracts/DailyStreakSystem.sol/DailyStreakSystem.json");
+  const artifact = await artifactPromise.json();
+  const contractAddress = "0x078c2B9B4099A9600A708e5CB7F6D85F136D82f4";
+  let signer = null;
+  let sig = null;
+  let message = null;
+  let provider;
+
+  console.log("artifactPromise:", artifactPromise);
+  console.log("Ethers version:", ethers.version);
+  window.onload = function () {
+    document.getElementById("btnConn").onclick = connectWallet;
+    document.getElementById("btnClaim").onclick = claimStreak;
+    document.getElementById("btnGetStreak").onclick = getStreak;
+  }
+
+  async function connectWallet() {
+    if (window.ethereum == null) {
+      console.log("MetaMask not installed; using read-only defaults")
+      provider = ethers.getDefaultProvider()
+    } else {
+      console.log("MetaMask installed")
+      // Connect to the MetaMask EIP-1193 object. This is a standard
+      // protocol that allows Ethers access to make all read-only
+      // requests through MetaMask.
+      provider = new ethers.BrowserProvider(window.ethereum)
+      // It also provides an opportunity to request access to write
+      // operations, which will be performed by the private key
+      // that MetaMask manages for the user.
+      signer = await provider.getSigner();
+      console.log("Signer:", signer);
+      message = "sign into ethers.org?"
+      sig = await signer.signMessage(message);
+      ethers.verifyMessage(message, sig)
+    }
+  }
+
+  async function claimStreak() {
+    console.log("Claiming Streak for:", signer.address);
+    const contract = new ethers.Contract(contractAddress, artifact.abi, signer)
+    console.log("Contract:", contract);
+    const result = await contract.claim();
+  }
+
+  async function getStreak() {
+    console.log("Getting Streak for:", signer.address);
+    const contract = new ethers.Contract(contractAddress, artifact.abi, signer)
+    //console.log("Contract:", contract, signer);
+    const result = await contract.streak(signer.address);
+    console.log("Result:", result);
+    document.getElementById("streak").innerHTML = "Streak: " + result.toString();
+  }
+
+</script>
+
+</html>

@@ -1,4 +1,4 @@
-import {HardhatUserConfig, vars} from "hardhat/config";
+import {HardhatUserConfig, task, vars} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 const SEPOLIA_BOBA_PRIVATE_KEY = vars.get("SEPOLIA_BOBA_PRIVATE_KEY");
@@ -11,6 +11,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       boba_sepolia: "boba_sepolia", // apiKey is not required, just set a placeholder
+      boba: "boba", // apiKey is not required, just set a placeholder
     },
     customChains: [
       {
@@ -19,6 +20,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.routescan.io/v2/network/testnet/evm/28882/etherscan",
           browserURL: "https://sepolia.testnet.bobascan.com",
+        },
+      },
+      {
+        network: "boba",
+        chainId: 288,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/288/etherscan",
+          browserURL: "https://boba.routescan.io",
         },
       },
     ],

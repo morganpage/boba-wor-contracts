@@ -23,12 +23,31 @@ npx hardhat ignition deploy ./ignition/modules/DeployAll.ts --network boba
 ```
 
 Verify
+Only the first parameter matters for verify purposes...
 ```shell
-npx hardhat verify --network boba_sepolia 0xfab43617B1Fa1fB3CCa323FCC2FC3DFe9E877B2B 0xfab43617B1Fa1fB3CCa323FCC2FC3DFe9E877B2B
-npx hardhat verify --network boba_sepolia 0xC997317CB590e9946444b1aF72180ee9901989a9 0xeE602f2b7Ebce91171B55c69029bc47Dcc4Bae4b 0xeE602f2b7Ebce91171B55c69029bc47Dcc4Bae4b 0xeE602f2b7Ebce91171B55c69029bc47Dcc4Bae4b
+npx hardhat verify --network boba_sepolia 0x56438B4ed61d67529b3d552FB2388587613CbBC8 0x56438B4ed61d67529b3d552FB2388587613CbBC8
+npx hardhat verify --network boba_sepolia 0x2c9be5B5fB1eC1f77744c53a132dE412f47a6Adf 0x2c9be5B5fB1eC1f77744c53a132dE412f47a6Adf 0x2c9be5B5fB1eC1f77744c53a132dE412f47a6Adf
 ```
 
 For major changes, you may need to wipe past deploys
 ```shell
-npx hardhat ignition wipe chain-28882 RoguesItemsModule#RoguesItems
+npx hardhat ignition wipe chain-28882 DeployAllModule#DeployAll
+npx hardhat ignition wipe chain-28882 DeployAllModule#DailyStreakSystem
+```
+
+Amend the post-deploy script with the correct contract addresses then run it, this script sets the uri for the erc1155 tokens and give the streak system contract address the minter role so that it can mint nfts
+```shell
+npx hardhat run scripts/post-deploy.ts --network boba_sepolia
+```
+
+Environment variables
+```shell
+npx hardhat vars list
+npx hardhat vars get SEPOLIA_BOBA_PRIVATE_KEY
+npx hardhat vars get BOBA_PRIVATE_KEY
+```
+
+Latest verify
+```shell
+npx hardhat verify --network boba 0xbE7C67194099b98F21A54e1272eB5C622D5D31B4 0xbE7C67194099b98F21A54e1272eB5C622D5D31B4
 ```

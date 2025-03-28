@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web3Auth</title>
+</head>
+
+<body>
+  <h1>Web3Auth</h1>
+  <button id="login" class="btn">Login</button>
+  <button id="getStreak" class="btn">Get Streak</button>
+  <button id="claimStreak" class="btn">Claim Streak</button>
+  <button id="showWallet" class="btn">Show Wallet</button>
+  <button id="validate" class="btn">Validate</button>
+  <button id="logout" class="btn">Logout</button>
+
+  <p id="info"></p>
+  <p id="streak"></p>
+  <p id="balance"></p>
+  <p id="validation"></p>
+  <p id="publicKey"></p>
+  <p id="idToken"></p>
+
+</body>
+
+<!--IMP START - Quick Start-->
+<script src="https://cdn.jsdelivr.net/npm/@web3auth/modal@9"></script>
+<script src="https://cdn.jsdelivr.net/npm/@web3auth/wallet-services-plugin@9"></script>
+<script src="https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9"></script>
+<!--IMP END - Quick Start-->
+
+<script type="module">
+  import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
+  window.onload = function () {
+    document.getElementById("login").onclick = login;
+    document.getElementById("getStreak").onclick = getStreak;
+    document.getElementById("claimStreak").onclick = claimStreak;
+    document.getElementById("showWallet").onclick = showWallet;
+    document.getElementById("validate").onclick = validate;
+    document.getElementById("logout").onclick = async function () {
+      await web3auth.logout();
+    };
+  }
+
+  const artifactPromise = await fetch("./artifacts/contracts/DailyStreakSystem.sol/DailyStreakSystem.json");
+  const artifact = await artifactPromise.json();
+  const contractAddress = "0xfa0eD60231979CD0B15fd6a1e04523D01751a780";
+
+  let web3auth = null;
+  let walletServicesPlugin = null;
+  (async function init() {
+    console.log("Initializing Web3Auth");
+
+    // IMP START - Dashboard Registration
+    const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get your clientId from https://dashboard.web3auth.io
+    // IMP END - Dashboard Registration
+
+    // IMP START - Chain Config
+    const chainConfig = {
+      chainNamespace: "eip155",
+      chainId: "0x70d2",
+      rpcTarget: "https://sepolia.boba.network",
+      // Avoid using public rpcTarget in production.
+      // Use services like Infura, Quicknode etc
+      displayName: "Boba Sepolia Testnet",
+      blockExplorerUrl: "https://testnet.bobascan.com/",
+      ticker: "ETH",
+      tickerName: "Ethereum",
+      logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+    };
+    // IMP END - Chain Config
+
+    // IMP START - SDK Initialization
+    const privateKeyProvider = new window.EthereumProvider.EthereumPrivateKeyProvider({ config: { chainConfig } });
+
+    web3auth = new window.Modal.Web3Auth({
+      clientId,
+      privateKeyProvider,
+      web3AuthNetwork: "sapphire_mainnet",
+    });
+
+    // Add wallet service plugin
+    walletServicesPlugin = new window.WalletServicesPlugin.WalletServicesPlugin();
+    web3auth.addPlugin(walletServicesPlugin); // Add the plugin to web3auth
+
+    await web3auth.initModal();
+    // IMP END - SDK Initialization
+
+    if (web3auth.connected) {
+      console.log("Connected to Web3Auth");
+      getAddress();
+      getBalance();
+    } else {
+      console.log("Not connected to Web3Auth");
+    }
+  })();
+
+  async function login() {
+    console.log("Login");
+    try {
+      await web3auth.connect();
+      console.log("Connected to Web3Auth...");
+      getAddress();
+      getBalance();
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  async function getAddress() {
+    console.log("Get Address");
+    try {
+      const ethersProvider = new ethers.BrowserProvider(web3auth.provider);
+      const signer = await ethersProvider.getSigner();
+      // Get user's Ethereum public address
+      const address = await signer.getAddress();
+      console.log("Address:", address);
+      //Show in info
+      document.getElementById("info").innerHTML = "Address: " + address;
+
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  async function getStreak() {
+    const ethersProvider = new ethers.BrowserProvider(web3auth.provider);
+    const signer = await ethersProvider.getSigner();
+    console.log("Getting Streak for:", signer.address);
+    const contract = new ethers.Contract(contractAddress, artifact.abi, signer)
+    //console.log("Contract:", contract, signer);
+    const resultStreak = await contract.streak(signer.address);
+    //await dailyStreakSystem.timeUntilCanClaim(otherAccount)
+    const timeUntilCanClaim = await contract.timeUntilCanClaim(signer.address);
+    console.log("Time Until Can Claim:", timeUntilCanClaim);
+    //bigint to number
+    const timeUntilCanClaimNumber = Number(timeUntilCanClaim);
+    //Seconds to hh:mm:ss
+    const timeUntilCanClaimFormatted = new Date(timeUntilCanClaimNumber * 1000).toISOString().substr(11, 8);
+    console.log("Time Until Can Claim Formatted:", timeUntilCanClaimFormatted);
+
+
+    //console.log("Result:", result);
+    document.getElementById("streak").innerHTML = "Streak: " + resultStreak.toString();
+  }
+
+  async function claimStreak() {
+    const ethersProvider = new ethers.BrowserProvider(web3auth.provider);
+    const signer = await ethersProvider.getSigner();
+    console.log("Claiming Streak for:", signer.address);
+    const contract = new ethers.Contract(contractAddress, artifact.abi, signer)
+    console.log("Contract:", contract);
+    const result = await contract.claim();
+    getBalance();
+  }
+
+  async function getBalance() {
+    const ethersProvider = new ethers.BrowserProvider(web3auth.provider);
+    const signer = await ethersProvider.getSigner();
+    const user = await web3auth.getUserInfo();
+    console.log("User:", user);
+
+    //const ethersProvider = new ethers.BrowserProvider(provider);
+    //const signer = await ethersProvider.getSigner();
+
+    // Get user's Ethereum public address
+    const address = signer.getAddress();
+
+    // Get user's balance in ether
+    // const balance = ethers.formatEther(
+    //   await ethersProvider.getBalance(address) // Balance is in wei
+    // );
+
+    const balance = await ethersProvider.getBalance(address);
+
+    console.log("Balance:", (balance));
+
+    //     const web3 = new Web3(web3auth.provider);
+
+    // // Get user's Ethereum public address
+    // const address = (await web3.eth.getAccounts())[0];
+
+    // // Get user's balance in ether
+    // const balance = web3.utils.fromWei(
+    //   await web3.eth.getBalance(address), // Balance is in wei
+    //   "ether"
+    // );
+
+
+
+    //const balance = await signer.getBalance();
+    //console.log("Balance:", ethers.utils.formatEther(balance));
+    document.getElementById("balance").innerHTML = "Balance: " + (balance);
+  }
+
+  async function showWallet() {
+    console.log("Show Wallet");
+    try {
+      if (walletServicesPlugin.status == "connected") {
+        // check if wallet is connected
+        await walletServicesPlugin.showWalletUi();
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  async function validate() {
+    const user = await web3auth.getUserInfo();
+    const token = user?.idToken.split(".")[1]; // payload
+    const decodedToken = JSON.parse(atob(token));
+    const publicKey = decodedToken.wallets[0].public_key;
+    const idToken = user.idToken;
+
+    document.getElementById("publicKey").innerHTML = "Public Key: " + publicKey;
+    document.getElementById("idToken").innerHTML = "Id Token: " + idToken;
+
+
+    // Do a post request to your server with the idToken and publicKey
+    const serverUrl = "http://localhost:8080";
+    const res = await fetch(serverUrl + "/api/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + idToken,
+      },
+      body: JSON.stringify({ appPubKey: publicKey }),
+    });
+    const returndata = await res.json();
+    document.getElementById("validation").innerHTML = JSON.stringify(returndata);
+    if (res.status === 200) {
+      console.log("JWT Verification is Successful");
+      // allow login
+    } else {
+      console.log("JWT Verification Failed");
+    }
+  };
+
+</script>
+
+</html>
